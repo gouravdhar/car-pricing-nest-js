@@ -4,6 +4,7 @@ import { User } from 'src/users/users.entity';
 import { Repository } from 'typeorm';
 import { ApproveDto } from './dtos/approve.dto';
 import { CreateReportDto } from './dtos/create-report.dto';
+import { GetEstimateDto } from './dtos/get-estimate.dto';
 import { Report } from './reports.entity';
 
 @Injectable()
@@ -14,6 +15,22 @@ export class ReportsService {
     const report = this.repo.create(reportDto);
     report.user = user;
     return this.repo.save(report);
+  }
+
+  createEstimate({ make, model, lat, lng, year, mileage }: GetEstimateDto) {
+    return this.repo
+      .createQueryBuilder()
+      .select('AVG(price)', 'price')
+      .where('make=:make', { make })
+      .andWhere('model=:model', { model })
+      .andWhere('lat - :lat BETWEEN -5 AND 5', { lat })
+      .andWhere('lng - :lng BETWEEN -5 AND 5', { lng })
+      .andWhere('year - :year BETWEEN -3 AND 3', { year })
+      .andWhere('approved Is TRUE')
+      .orderBy('ABS(mileage - :mileage)', 'DESC')
+      .setParameters({ mileage })
+      .limit(3)
+      .getRawOne();
   }
 
   async changeApproval(id: string, approved: boolean) {
